@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+title: "Sistema operativo neuro-adattivo per l'efficienza energetica dal livello macchina al controllo di un braccio robotico"
+message: "Se usi o citi questo lavoro, usa i metadati riportati in questo file."
+type: software
+authors:
+  - family-names: "Giovetti"
+    given-names: "Giacomo"
+license: "CC-BY-SA-4.0"
+abstract: "Paper concettuale su un'architettura di sistema operativo neuro-adattivo che usa modelli neurali per ottimizzare l'efficienza energetica dal livello macchina fino al controllo di un attuatore robotico."

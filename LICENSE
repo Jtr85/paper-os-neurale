@@ -1,0 +1,24 @@
+Licensing overview for this repository
+
+Autore: Giacomo Giovetti
+
+Questo repository è pensato per rimanere aperto in modo permanente.
+
+Regole generali:
+
+1. Il codice sorgente presente o futuro è distribuito sotto `GNU Affero General Public License v3.0 or later`.
+   Vedi `LICENSE-CODE`.
+
+2. Paper, documentazione, testi, note e materiali editoriali sono distribuiti sotto
+   `Creative Commons Attribution-ShareAlike 4.0 International`.
+   Vedi `LICENSE-DOCS`.
+
+3. In assenza di indicazioni diverse all'interno di un file specifico, vale questa distinzione:
+   - file di codice -> `AGPL-3.0-or-later`
+   - file documentali -> `CC BY-SA 4.0`
+
+Obiettivo della scelta:
+
+- impedire appropriazione proprietaria chiusa del lavoro
+- mantenere libertà di studio, modifica e ridistribuzione
+- favorire implementazione democratica e meritocrazia del software
