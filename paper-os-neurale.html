@@ -423,7 +423,7 @@
       <p class="meta">Proposta architetturale basata su attivazione selettiva dei moduli, previsione neurale del carico e controllo energetico task-driven.</p>
       <div class="abstract">
         <div class="abstract-title">Sintesi</div>
-        <p>Questo paper formalizza un'idea semplice ma radicale: un sistema operativo non dovrebbe mantenere in stato attivo un insieme ampio e genericamente disponibile di servizi, buffer, driver e percorsi di esecuzione quando il task corrente richiede soltanto una frazione di tali risorse. La proposta introduce un kernel neuro-adattivo che osserva il contesto del task, prevede il working set funzionale necessario e decide quali pagine di codice, code I/O, driver, runtime e unità periferiche debbano restare attivi. Il contributo non è l'uso di una rete neurale al posto del kernel, ma l'inserimento di un controllore predittivo che riduca il costo energetico lungo l'intera catena, dal livello macchina fino al comando finale di un attuatore robotico. Lo stesso metodo viene inoltre riutilizzato per costruire un livello di sicurezza complementare, basato su percorsi esecutivi canonici e token di attestazione verificabili.</p>
+        <p>Questo paper formalizza un'idea semplice ma radicale: un sistema operativo non dovrebbe mantenere in stato attivo un insieme ampio e genericamente disponibile di servizi, buffer, driver e percorsi di esecuzione quando il task corrente richiede soltanto una frazione di tali risorse. La proposta introduce un kernel neuro-adattivo che osserva il contesto del task, prevede il working set funzionale necessario e decide quali pagine di codice, code I/O, driver, runtime e unità periferiche debbano restare attivi. Il contributo non è l'uso di una rete neurale al posto del kernel, ma l'inserimento di un controllore predittivo che riduca il costo energetico lungo l'intera catena, dal livello macchina fino al comando finale di un attuatore robotico.</p>
       </div>
       <p class="keywords"><strong>Keywords:</strong> sistema operativo neuro-adattivo, efficienza energetica, scheduling energy-aware, microkernel, unikernel, robotica, controllo predittivo, working set funzionale.</p>
     </header>
@@ -436,6 +436,7 @@
         <li><a href="#section-strati">Architettura a strati</a></li>
         <li><a href="#section-motore">Motore neurale</a></li>
         <li><a href="#section-flusso">Flusso task-braccio</a></li>
+        <li><a href="#section-sicurezza">Sicurezza complementare</a></li>
         <li><a href="#section-related">Related work</a></li>
         <li><a href="#section-valutazione">Valutazione</a></li>
         <li><a href="#section-limiti">Limiti e sicurezza</a></li>
@@ -581,6 +582,23 @@ sequenceDiagram
         <p>Il punto importante è che la riduzione di consumo non avviene in un singolo istante. Avviene in ogni transizione: meno moduli residenti, meno risveglio di periferiche, meno percorsi di interrupt, meno copie di buffer, meno permanenza in stati ad alta potenza. Nel dominio robotico, inoltre, il profilo computazionale può essere sincronizzato alle fasi del gesto: percezione, pianificazione, esecuzione, verifica, pausa. Ogni fase richiede una forma diversa di sistema attivo.</p>
       </section>
 
+      <section id="section-sicurezza">
+        <h2>Sicurezza complementare</h2>
+        <p>Lo stesso principio che rende il sistema più efficiente può essere riutilizzato per rafforzarne la sicurezza. Se il sistema conosce il sottoinsieme preciso di moduli, driver, buffer e transizioni necessari a un task, allora può anche attestare che l'azione finale derivi davvero da quel percorso e non da una deviazione arbitraria. Nasce così un livello complementare di sicurezza fondato non sulla lunghezza di una stringa descrittiva, ma sulla costruzione di un <strong>percorso esecutivo canonico</strong> e sulla sua verifica crittografica.</p>
+        <p>Per ogni richiesta il sistema produce due oggetti distinti. Il primo è una descrizione semantica del percorso, leggibile e utile per audit, debugging e analisi forense. Il secondo è un token di attestazione, ottenuto applicando una funzione crittografica a tale descrizione canonica insieme a nonce, timestamp e contesto del task. L'azione finale, soprattutto se coinvolge un attuatore robotico, viene autorizzata soltanto se il token è coerente con il percorso realmente seguito.</p>
+        <h3>Schema del path token</h3>
+        <pre><code>path_description =
+  canonical(task, moduli_previsti, moduli_attivati, chain, deadline, contesto)
+
+path_token =
+  HMAC(secret, path_description || nonce || timestamp)</code></pre>
+        <p>In questa architettura la sicurezza non è un blocco separato incollato a valle, ma una proprietà che emerge dalla stessa compressione del sistema attivo. Più il percorso è esplicito, deterministico e verificabile, più è difficile per un attore malevolo inserire moduli imprevisti, deviare la catena decisionale o riutilizzare in replay un'autorizzazione vecchia. Efficienza energetica e integrità del percorso diventano dunque due effetti complementari dello stesso metodo.</p>
+        <div class="callout">
+          <div class="callout-title">Principio architetturale</div>
+          <p>Il sistema non si limita a decidere quali componenti attivare: dimostra anche che l'azione finale è nata da una sequenza coerente, autorizzata e integra di transizioni interne.</p>
+        </div>
+      </section>
+
       <section id="section-related">
         <h2>Related work</h2>
         <p>La letteratura e la pratica industriale hanno già affrontato parti del problema, ma in forma frammentata. Nel kernel Linux, l'Energy Aware Scheduling introduce decisioni di piazzamento dei task basate su un modello energetico della piattaforma, scegliendo la CPU ritenuta più efficiente con impatto minimo sul throughput; la documentazione lo presenta come una tecnica di previsione del costo energetico delle decisioni di scheduling, non come una riprogettazione completa del sistema operativo.<sup><a href="#cite-1">[1]</a></sup> Questa è una baseline importante perché dimostra che l'energia può entrare nella logica del kernel, ma soltanto in un sotto-problema specifico.</p>
@@ -627,7 +645,7 @@ sequenceDiagram
       <section id="section-limiti">
         <h2>Limiti e sicurezza</h2>
         <p>Il primo limite è l'overhead del modello. Se la rete è troppo pesante, il costo della previsione distrugge il risparmio ottenuto. Il secondo limite è la granularità reale del controllo: non si spengono singole istruzioni, ma famiglie di componenti software e hardware. Il terzo limite è il rischio di underprovisioning, cioè attivare un set troppo piccolo e dover inseguire il task con riattivazioni tardive.</p>
-        <p>In ambiente robotico questi limiti diventano condizioni di sicurezza. Il sistema deve prevedere un <strong>fallback deterministico</strong>: se la fiducia del modello scende sotto una soglia, se la latenza cresce oltre un limite o se il controllore del braccio entra in una fase critica, la gestione passa a una politica conservativa predefinita. In altre parole, l'intelligenza del sistema non può mettere a rischio la stabilità del gesto.</p>
+        <p>Quando si aggiunge il layer di attestazione, emerge un limite ulteriore: la descrizione del percorso non deve rivelare più dettagli interni di quanti ne servano alla verifica. In ambiente robotico questi vincoli diventano condizioni di sicurezza. Il sistema deve prevedere un <strong>fallback deterministico</strong>: se la fiducia del modello scende sotto una soglia, se la latenza cresce oltre un limite, se il token del percorso fallisce la verifica o se il controllore del braccio entra in una fase critica, la gestione passa a una politica conservativa predefinita. In altre parole, l'intelligenza del sistema non può mettere a rischio la stabilità del gesto.</p>
         <div class="callout">
           <div class="callout-title">Principio di sicurezza</div>
           <p>Ogni componente critico per la stabilità del robot deve avere una modalità sempre disponibile, indipendente dall'esito della previsione neurale. L'AI ottimizza; il nucleo di sicurezza garantisce.</p>
@@ -643,7 +661,7 @@ sequenceDiagram
       <section id="section-conclusione">
         <h2>Conclusione</h2>
         <p>Il paper propone un sistema operativo neuro-adattivo in cui l'efficienza energetica nasce dalla corrispondenza dinamica tra task richiesto e sottoinsieme di sistema effettivamente attivo. Il contributo principale è aver spostato il problema dall'ottimizzazione locale di scheduler o cache a una visione architetturale integrata, capace di collegare livello macchina, kernel, runtime e attuatore robotico.</p>
-        <p>La proposta non pretende di aver già dimostrato sperimentalmente un guadagno assoluto. Pretende però di offrire un disegno tecnico coerente, testabile e sufficientemente rigoroso per essere sviluppato come linea di ricerca. Se implementato su una piattaforma embedded o robotica con modularità forte, un tale sistema potrebbe trasformare il sistema operativo da infrastruttura sempre accesa a organismo computazionale che si adatta, si comprime e si espande in funzione del compito reale.</p>
+        <p>La proposta ora estende questo principio anche alla sicurezza: il medesimo metodo che restringe il sistema attivo produce infatti una genealogia verificabile dell'azione eseguita. La proposta non pretende di aver già dimostrato sperimentalmente un guadagno assoluto. Pretende però di offrire un disegno tecnico coerente, testabile e sufficientemente rigoroso per essere sviluppato come linea di ricerca. Se implementato su una piattaforma embedded o robotica con modularità forte, un tale sistema potrebbe trasformare il sistema operativo da infrastruttura sempre accesa a organismo computazionale che si adatta, si comprime, si protegge e si espande in funzione del compito reale.</p>
       </section>
     </main>
 
